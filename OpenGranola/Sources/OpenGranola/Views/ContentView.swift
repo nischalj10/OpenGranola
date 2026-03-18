@@ -10,6 +10,8 @@ struct ContentView: View {
     @State private var sessionStore = SessionStore()
     @State private var transcriptLogger = TranscriptLogger()
     @State private var overlayManager = OverlayManager()
+    @State private var meetingDetector = MeetingDetector()
+    @State private var meetingNotificationManager = MeetingNotificationManager()
     @State private var lastThemUtteranceCount = 0
     @AppStorage("isTranscriptExpanded") private var isTranscriptExpanded = true
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
@@ -108,6 +110,36 @@ struct ContentView: View {
                 )
             }
             indexKBIfNeeded()
+            // Start meeting detection
+            if let engine = transcriptionEngine {
+                meetingDetector.isRecording = { [weak engine] in
+                    engine?.isRunning ?? false
+                }
+            }
+            if settings.meetingDetectionEnabled {
+                meetingDetector.startMonitoring()
+            }
+        }
+        .onChange(of: settings.meetingDetectionEnabled) {
+            if settings.meetingDetectionEnabled {
+                meetingDetector.startMonitoring()
+            } else {
+                meetingDetector.stopMonitoring()
+                meetingNotificationManager.hide()
+            }
+        }
+        .onChange(of: meetingDetector.isMeetingDetected) {
+            if meetingDetector.isMeetingDetected && !isRunning {
+                meetingNotificationManager.show(
+                    onStartRecording: {
+                        meetingDetector.acknowledgeRecordingStarted()
+                        startSession()
+                    },
+                    onDismiss: {
+                        meetingDetector.dismiss()
+                    }
+                )
+            }
         }
         .onChange(of: settings.kbFolderPath) {
             indexKBIfNeeded()
@@ -195,6 +227,8 @@ struct ContentView: View {
     // MARK: - Actions
 
     private func startSession() {
+        meetingNotificationManager.hide()
+        meetingDetector.acknowledgeRecordingStarted()
         Task {
             await sessionStore.startSession()
             await transcriptLogger.startSession()

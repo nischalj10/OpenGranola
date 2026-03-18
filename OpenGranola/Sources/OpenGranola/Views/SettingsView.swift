@@ -93,6 +93,14 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("Meeting Detection") {
+                Toggle("Detect meetings and prompt to record", isOn: $settings.meetingDetectionEnabled)
+                    .font(.system(size: 12))
+                Text("Shows a notification when your microphone is activated by another app.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Updates") {
                 Toggle("Automatically check for updates", isOn: Binding(
                     get: { updater.automaticallyChecksForUpdates },
