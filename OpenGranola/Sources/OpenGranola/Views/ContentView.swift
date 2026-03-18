@@ -10,6 +10,8 @@ struct ContentView: View {
     @State private var sessionStore = SessionStore()
     @State private var transcriptLogger = TranscriptLogger()
     @State private var overlayManager = OverlayManager()
+    @State private var meetingDetector: MeetingDetector?
+    @State private var meetingPopupManager = MeetingPopupManager()
     @State private var lastThemUtteranceCount = 0
     @AppStorage("isTranscriptExpanded") private var isTranscriptExpanded = true
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
@@ -108,6 +110,35 @@ struct ContentView: View {
                 )
             }
             indexKBIfNeeded()
+
+            // Start meeting detection if enabled
+            if settings.meetingDetectionEnabled {
+                let detector = MeetingDetector()
+                meetingDetector = detector
+                detector.start()
+            }
+        }
+        .onChange(of: settings.meetingDetectionEnabled) {
+            if settings.meetingDetectionEnabled {
+                if meetingDetector == nil {
+                    let detector = MeetingDetector()
+                    meetingDetector = detector
+                    detector.start()
+                }
+            } else {
+                meetingDetector?.stop()
+                meetingDetector = nil
+                meetingPopupManager.hide()
+            }
+        }
+        .onChange(of: meetingDetector?.detectedMeeting?.id) {
+            guard let meeting = meetingDetector?.detectedMeeting else { return }
+            // Don't show popup if already recording
+            guard !isRunning else {
+                meetingDetector?.clearDetection()
+                return
+            }
+            showMeetingPopup(meeting)
         }
         .onChange(of: settings.kbFolderPath) {
             indexKBIfNeeded()
@@ -250,6 +281,19 @@ struct ContentView: View {
         }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(lines.joined(separator: "\n"), forType: .string)
+    }
+
+    private func showMeetingPopup(_ meeting: DetectedMeeting) {
+        meetingPopupManager.show(
+            meeting: meeting,
+            onStart: {
+                meetingDetector?.clearDetection()
+                startSession()
+            },
+            onDismiss: {
+                meetingDetector?.dismiss(id: meeting.id)
+            }
+        )
     }
 
     private func handleNewUtterance() {

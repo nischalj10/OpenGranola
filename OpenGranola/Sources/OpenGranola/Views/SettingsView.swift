@@ -85,6 +85,14 @@ struct SettingsView: View {
                     .font(.system(size: 12, design: .monospaced))
             }
 
+            Section("Meeting Detection") {
+                Toggle("Detect meetings automatically", isOn: $settings.meetingDetectionEnabled)
+                    .font(.system(size: 12))
+                Text("Show a popup when a meeting app launches or a call is detected, prompting you to start recording.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Privacy") {
                 Toggle("Hide from screen sharing", isOn: $settings.hideFromScreenShare)
                     .font(.system(size: 12))

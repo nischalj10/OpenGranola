@@ -80,6 +80,11 @@ final class AppSettings {
         didSet { UserDefaults.standard.set(ollamaEmbedModel, forKey: "ollamaEmbedModel") }
     }
 
+    /// When true, the app monitors for meeting apps and audio device changes to prompt recording.
+    var meetingDetectionEnabled: Bool {
+        didSet { UserDefaults.standard.set(meetingDetectionEnabled, forKey: "meetingDetectionEnabled") }
+    }
+
     /// When true, all app windows are invisible to screen sharing / recording.
     var hideFromScreenShare: Bool {
         didSet {
@@ -101,6 +106,12 @@ final class AppSettings {
         self.ollamaBaseURL = defaults.string(forKey: "ollamaBaseURL") ?? "http://localhost:11434"
         self.ollamaLLMModel = defaults.string(forKey: "ollamaLLMModel") ?? "qwen3:8b"
         self.ollamaEmbedModel = defaults.string(forKey: "ollamaEmbedModel") ?? "nomic-embed-text"
+        // Default to true (enabled) if key has never been set
+        if defaults.object(forKey: "meetingDetectionEnabled") == nil {
+            self.meetingDetectionEnabled = true
+        } else {
+            self.meetingDetectionEnabled = defaults.bool(forKey: "meetingDetectionEnabled")
+        }
         // Default to true (hidden) if key has never been set
         if defaults.object(forKey: "hideFromScreenShare") == nil {
             self.hideFromScreenShare = true
